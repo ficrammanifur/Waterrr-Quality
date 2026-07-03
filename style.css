@@ -1,0 +1,260 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+    background: #f0f4f8;
+    color: #2d3748;
+    padding: 20px;
+}
+
+.container {
+    max-width: 1400px;
+    margin: 0 auto;
+}
+
+header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px;
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    margin-bottom: 24px;
+}
+
+h1 {
+    font-size: 24px;
+    font-weight: 600;
+    color: #1a202c;
+}
+
+.status-header {
+    display: flex;
+    gap: 20px;
+    align-items: center;
+    font-size: 14px;
+}
+
+.status-badge {
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-weight: 500;
+}
+
+.status-badge.online {
+    background: #48bb78;
+    color: white;
+}
+
+.status-badge.offline {
+    background: #fc8181;
+    color: white;
+}
+
+.grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 20px;
+    margin-bottom: 24px;
+}
+
+.card {
+    background: white;
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.card-title {
+    font-size: 14px;
+    font-weight: 500;
+    color: #718096;
+    margin-bottom: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* Status Display */
+.status-display {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.status-text {
+    font-size: 28px;
+    font-weight: 700;
+}
+
+.status-text.layak {
+    color: #48bb78;
+}
+
+.status-text.tidak-layak {
+    color: #fc8181;
+}
+
+.status-icon {
+    font-size: 32px;
+}
+
+.status-detail {
+    font-size: 14px;
+    color: #718096;
+    margin-top: 8px;
+}
+
+/* Health Display */
+.health-display {
+    text-align: center;
+}
+
+.health-percentage {
+    font-size: 36px;
+    font-weight: 700;
+    margin-bottom: 12px;
+}
+
+.progress-bar {
+    width: 100%;
+    height: 8px;
+    background: #e2e8f0;
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.progress-fill {
+    height: 100%;
+    border-radius: 4px;
+    transition: width 0.5s ease;
+}
+
+.progress-fill.good {
+    background: #48bb78;
+}
+
+.progress-fill.warning {
+    background: #f6ad55;
+}
+
+.progress-fill.danger {
+    background: #fc8181;
+}
+
+.health-detail {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 12px;
+    font-size: 14px;
+    color: #718096;
+}
+
+/* Value Display */
+.value-display {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+}
+
+.value-large {
+    font-size: 32px;
+    font-weight: 700;
+}
+
+.value-unit {
+    font-size: 16px;
+    color: #718096;
+}
+
+.status-indicator {
+    margin-top: 8px;
+    font-size: 14px;
+    padding: 4px 12px;
+    border-radius: 12px;
+    display: inline-block;
+}
+
+.status-indicator.normal {
+    background: #c6f6d5;
+    color: #22543d;
+}
+
+.status-indicator.warning {
+    background: #fefcbf;
+    color: #744210;
+}
+
+.status-indicator.danger {
+    background: #fed7d7;
+    color: #742a2a;
+}
+
+/* Pump Status */
+.pump-badge {
+    font-size: 24px;
+    font-weight: 700;
+    padding: 8px 16px;
+    border-radius: 8px;
+    display: inline-block;
+}
+
+.pump-badge.on {
+    color: #48bb78;
+    background: #c6f6d5;
+}
+
+.pump-badge.off {
+    color: #fc8181;
+    background: #fed7d7;
+}
+
+/* Charts */
+.charts-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+    gap: 24px;
+}
+
+.chart-card {
+    background: white;
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.chart-card canvas {
+    max-height: 250px;
+    max-width: 100%;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    header {
+        flex-direction: column;
+        gap: 12px;
+        text-align: center;
+    }
+    
+    .status-header {
+        flex-direction: column;
+        gap: 8px;
+    }
+    
+    .grid {
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: 12px;
+    }
+    
+    .charts-container {
+        grid-template-columns: 1fr;
+    }
+    
+    .value-large {
+        font-size: 24px;
+    }
+}
