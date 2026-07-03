@@ -9,6 +9,7 @@ body {
     background: #f0f4f8;
     color: #2d3748;
     padding: 20px;
+    min-height: 100vh;
 }
 
 .container {
@@ -16,34 +17,39 @@ body {
     margin: 0 auto;
 }
 
+/* Header */
 header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 20px;
+    padding: 20px 24px;
     background: white;
     border-radius: 12px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
     margin-bottom: 24px;
+    flex-wrap: wrap;
+    gap: 12px;
 }
 
 h1 {
-    font-size: 24px;
+    font-size: 22px;
     font-weight: 600;
     color: #1a202c;
 }
 
 .status-header {
     display: flex;
-    gap: 20px;
+    gap: 16px;
     align-items: center;
-    font-size: 14px;
+    font-size: 13px;
+    flex-wrap: wrap;
 }
 
 .status-badge {
-    padding: 6px 12px;
+    padding: 4px 14px;
     border-radius: 20px;
     font-weight: 500;
+    font-size: 13px;
 }
 
 .status-badge.online {
@@ -56,25 +62,37 @@ h1 {
     color: white;
 }
 
+#lastUpdate {
+    color: #718096;
+    font-size: 13px;
+}
+
+/* Grid */
 .grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 20px;
+    gap: 16px;
     margin-bottom: 24px;
 }
 
 .card {
     background: white;
     border-radius: 12px;
-    padding: 20px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    padding: 16px 20px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    transition: transform 0.2s;
+}
+
+.card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
 }
 
 .card-title {
-    font-size: 14px;
-    font-weight: 500;
+    font-size: 12px;
+    font-weight: 600;
     color: #718096;
-    margin-bottom: 12px;
+    margin-bottom: 10px;
     text-transform: uppercase;
     letter-spacing: 0.5px;
 }
@@ -83,11 +101,11 @@ h1 {
 .status-display {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 10px;
 }
 
 .status-text {
-    font-size: 28px;
+    font-size: 24px;
     font-weight: 700;
 }
 
@@ -100,13 +118,13 @@ h1 {
 }
 
 .status-icon {
-    font-size: 32px;
+    font-size: 28px;
 }
 
 .status-detail {
-    font-size: 14px;
+    font-size: 13px;
     color: #718096;
-    margin-top: 8px;
+    margin-top: 4px;
 }
 
 /* Health Display */
@@ -115,9 +133,9 @@ h1 {
 }
 
 .health-percentage {
-    font-size: 36px;
+    font-size: 32px;
     font-weight: 700;
-    margin-bottom: 12px;
+    margin-bottom: 10px;
 }
 
 .progress-bar {
@@ -131,26 +149,26 @@ h1 {
 .progress-fill {
     height: 100%;
     border-radius: 4px;
-    transition: width 0.5s ease;
+    transition: width 0.8s ease;
 }
 
 .progress-fill.good {
-    background: #48bb78;
+    background: linear-gradient(90deg, #48bb78, #38a169);
 }
 
 .progress-fill.warning {
-    background: #f6ad55;
+    background: linear-gradient(90deg, #f6ad55, #ed8936);
 }
 
 .progress-fill.danger {
-    background: #fc8181;
+    background: linear-gradient(90deg, #fc8181, #e53e3e);
 }
 
 .health-detail {
     display: flex;
     justify-content: space-between;
-    margin-top: 12px;
-    font-size: 14px;
+    margin-top: 10px;
+    font-size: 13px;
     color: #718096;
 }
 
@@ -158,23 +176,23 @@ h1 {
 .value-display {
     display: flex;
     align-items: baseline;
-    gap: 8px;
+    gap: 6px;
 }
 
 .value-large {
-    font-size: 32px;
+    font-size: 28px;
     font-weight: 700;
 }
 
 .value-unit {
-    font-size: 16px;
+    font-size: 14px;
     color: #718096;
 }
 
 .status-indicator {
-    margin-top: 8px;
-    font-size: 14px;
-    padding: 4px 12px;
+    margin-top: 6px;
+    font-size: 13px;
+    padding: 2px 12px;
     border-radius: 12px;
     display: inline-block;
 }
@@ -196,9 +214,9 @@ h1 {
 
 /* Pump Status */
 .pump-badge {
-    font-size: 24px;
+    font-size: 20px;
     font-weight: 700;
-    padding: 8px 16px;
+    padding: 4px 14px;
     border-radius: 8px;
     display: inline-block;
 }
@@ -216,33 +234,41 @@ h1 {
 /* Charts */
 .charts-container {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
-    gap: 24px;
+    grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+    gap: 20px;
 }
 
 .chart-card {
     background: white;
     border-radius: 12px;
     padding: 20px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+}
+
+.chart-card .card-title {
+    margin-bottom: 12px;
 }
 
 .chart-card canvas {
-    max-height: 250px;
+    max-height: 220px;
     max-width: 100%;
+    height: 220px !important;
 }
 
 /* Responsive */
 @media (max-width: 768px) {
+    body {
+        padding: 12px;
+    }
+    
     header {
         flex-direction: column;
-        gap: 12px;
         text-align: center;
+        padding: 16px;
     }
     
     .status-header {
-        flex-direction: column;
-        gap: 8px;
+        justify-content: center;
     }
     
     .grid {
@@ -255,6 +281,33 @@ h1 {
     }
     
     .value-large {
+        font-size: 22px;
+    }
+    
+    .status-text {
+        font-size: 20px;
+    }
+    
+    .chart-card canvas {
+        height: 180px !important;
+    }
+}
+
+@media (max-width: 480px) {
+    .grid {
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+    }
+    
+    .card {
+        padding: 12px 14px;
+    }
+    
+    .value-large {
+        font-size: 18px;
+    }
+    
+    .health-percentage {
         font-size: 24px;
     }
 }
