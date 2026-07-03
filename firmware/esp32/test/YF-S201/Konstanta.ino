@@ -1,7 +1,7 @@
 // const float ML_PER_PULSE = 1000.0 / 922.0;
 // = 1.0846 mL per pulse
 
-#define FLOW_PIN 18
+#define FLOW_PIN 19
 
 volatile unsigned long pulseCount = 0;
 
