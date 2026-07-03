@@ -38,8 +38,8 @@
 #define PH_PIN          32
 #define TDS_PIN         33
 #define TURBIDITY_PIN   35
-#define DS18B20_PIN     25
-#define FLOW_PIN        18
+#define DS18B20_PIN     18
+#define FLOW_PIN        19
 #define LED_HIJAU_PIN   26
 #define LED_MERAH_PIN   27
 #define LCD_SDA         21
