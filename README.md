@@ -1,10 +1,14 @@
 <h1 align="center">💧 SMART RO WATER QUALITY MONITOR</h1>
+
+
 <p align="center">
   <img src="Smart+RO+Water+Quality+Monitor" alt="Smart RO Monitor Preview" width="700"/>
 </p>
+
 <p align="center">
   <em>Sistem Monitoring Kualitas Air RO Real-time berbasis ESP32 + MQTT</em>
 </p>
+
 <p align="center">
   <img src="https://img.shields.io/badge/last%20update-today-brightgreen" />
   <img src="https://img.shields.io/badge/language-HTML%20%7C%20CSS%20%7C%20JavaScript-blue" />
