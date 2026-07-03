@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart RO Water Quality Monitor</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>💧 Smart RO Water Quality Monitor</h1>
+            <div class="status-header">
+                <span id="mqttStatus" class="status-badge offline">MQTT: Offline</span>
+                <span id="lastUpdate">Last Update: --</span>
+            </div>
+        </header>
+
+        <div class="grid">
+            <!-- Card: Status Air -->
+            <div class="card">
+                <div class="card-title">Status Air</div>
+                <div id="waterStatus" class="status-display">
+                    <span class="status-text">--</span>
+                    <span class="status-icon">⏳</span>
+                </div>
+                <div class="status-detail" id="statusDetail">Menunggu data...</div>
+            </div>
+
+            <!-- Card: Filter Health -->
+            <div class="card">
+                <div class="card-title">Kesehatan Filter</div>
+                <div class="health-display">
+                    <div class="health-percentage" id="filterHealth">--%</div>
+                    <div class="progress-bar">
+                        <div id="healthBar" class="progress-fill" style="width: 0%"></div>
+                    </div>
+                </div>
+                <div class="health-detail">
+                    <span id="daysLeft">Estimasi: -- Hari</span>
+                    <span id="volumeTotal">Volume: -- L</span>
+                </div>
+            </div>
+
+            <!-- Card: pH -->
+            <div class="card">
+                <div class="card-title">pH</div>
+                <div class="value-display">
+                    <span id="phValue" class="value-large">--</span>
+                    <span class="value-unit">pH</span>
+                </div>
+                <div class="status-indicator" id="phStatus">Normal</div>
+            </div>
+
+            <!-- Card: TDS -->
+            <div class="card">
+                <div class="card-title">TDS</div>
+                <div class="value-display">
+                    <span id="tdsValue" class="value-large">--</span>
+                    <span class="value-unit">ppm</span>
+                </div>
+                <div class="status-indicator" id="tdsStatus">Normal</div>
+            </div>
+
+            <!-- Card: Turbidity -->
+            <div class="card">
+                <div class="card-title">Kekeruhan</div>
+                <div class="value-display">
+                    <span id="turbidityValue" class="value-large">--</span>
+                    <span class="value-unit">%</span>
+                </div>
+                <div class="status-indicator" id="turbidityStatus">Jernih</div>
+            </div>
+
+            <!-- Card: Temperature -->
+            <div class="card">
+                <div class="card-title">Suhu</div>
+                <div class="value-display">
+                    <span id="tempValue" class="value-large">--</span>
+                    <span class="value-unit">°C</span>
+                </div>
+                <div class="status-indicator" id="tempStatus">Normal</div>
+            </div>
+
+            <!-- Card: Pump Status -->
+            <div class="card">
+                <div class="card-title">Pompa</div>
+                <div class="pump-status">
+                    <span id="pumpStatus" class="pump-badge">--</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Charts -->
+        <div class="charts-container">
+            <div class="chart-card">
+                <div class="card-title">Grafik pH</div>
+                <canvas id="phChart"></canvas>
+            </div>
+            <div class="chart-card">
+                <div class="card-title">Grafik TDS</div>
+                <canvas id="tdsChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
