@@ -1,6 +1,3 @@
-//   DASHBOARD SCRIPT
-//   MQTT over WebSocket
-
 // ==================== CONFIGURATION ====================
 const MQTT_CONFIG = {
     broker: 'wss://broker.hivemq.com:8000/mqtt',
