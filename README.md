@@ -1,6 +1,3 @@
-**Berikut adalah `README.md` yang sudah disesuaikan khusus untuk proyek kamu:**
-
-```markdown
 <h1 align="center">💧 SMART RO WATER QUALITY MONITOR</h1>
 <p align="center">
   <img src="https://via.placeholder.com/800x400/2b6cb0/ffffff?text=Smart+RO+Water+Quality+Monitor" alt="Smart RO Monitor Preview" width="700"/>
