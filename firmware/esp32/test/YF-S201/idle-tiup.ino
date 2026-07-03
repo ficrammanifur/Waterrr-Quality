@@ -3,7 +3,7 @@
   GPIO 18
 */
 
-#define FLOW_PIN 18
+#define FLOW_PIN 19
 
 volatile uint32_t pulseCount = 0;
 
