@@ -21,7 +21,7 @@
 #define PH_PIN 32
 #define TDS_PIN 33
 #define TURBIDITY_PIN 35
-#define DS18B20_PIN 25
+#define DS18B20_PIN 18
 #define FLOW_PIN 19
 #define LCD_SDA 21
 #define LCD_SCL 22
@@ -89,9 +89,9 @@ const float V7 = 0.874; const float PH7 = 6.86;
 const float V9 = 0.485; const float PH9 = 9.18;
 
 // ==================== TURBIDITY CALIBRATION ====================
-// Gunakan nilai default yang lebih realistis
-int TURB_AIR_ADC = 3800;     // Nilai di air jernih
-int TURB_UDARA_ADC = 3000;   // Nilai di udara
+// HASIL KALIBRASI DARI TESTING ANDA
+const int ADC_AIR = 1946;     // Nilai di air jernih
+const int ADC_UDARA = 1705;   // Nilai di udara
 
 // ==================== TIMING ====================
 const unsigned long SENSOR_INTERVAL = 1000;
@@ -184,9 +184,10 @@ void setup() {
     
     Serial.println("[OK] Sensors initialized");
     Serial.println("\n[TDS] Using DFRobot formula");
-    Serial.println("[TURBIDITY] Using percentage-based turbidity");
-    Serial.println("[TURBIDITY] Default: AIR=3800, UDARA=3000");
-    Serial.println("[TURBIDITY] Calibrate with 'cal_turb' command if needed\n");
+    Serial.println("[TURBIDITY] Calibration loaded:");
+    Serial.printf("  ADC_AIR   = %d\n", ADC_AIR);
+    Serial.printf("  ADC_UDARA = %d\n", ADC_UDARA);
+    Serial.println("[TURBIDITY] Note: Low ADC values detected, sensor may need cleaning\n");
     
     initWiFi();
     if (wifiConnected) {
@@ -351,22 +352,18 @@ void readTemperature() {
 
 // ==================== TURBIDITY FUNCTIONS ====================
 float adcToNTU(int adc) {
-    // Cek apakah sensor terdeteksi
-    if (adc < 500) {
-        // Sensor mungkin tidak terhubung atau rusak
-        return 0.0;
-    }
-    
+    // Menggunakan hasil kalibrasi
     float persenKekeruhan;
     
-    if (adc >= TURB_AIR_ADC) {
-        persenKekeruhan = 0;
+    if (adc >= ADC_AIR) {
+        persenKekeruhan = 0;  // Sangat jernih
     }
-    else if (adc <= TURB_UDARA_ADC) {
-        persenKekeruhan = 100;
+    else if (adc <= ADC_UDARA) {
+        persenKekeruhan = 100; // Sangat keruh
     }
     else {
-        persenKekeruhan = 100.0 * (TURB_AIR_ADC - adc) / (TURB_AIR_ADC - TURB_UDARA_ADC);
+        // Mapping linear dari ADC ke persentase kekeruhan
+        persenKekeruhan = 100.0 * (ADC_AIR - adc) / (ADC_AIR - ADC_UDARA);
     }
     
     return constrain(persenKekeruhan, 0, 100);
@@ -383,8 +380,9 @@ void readTurbidity() {
     turbidityADC = sum / AVG_SAMPLES;
     
     turbidityNTU = adcToNTU(turbidityADC);
-    turbidityPercent = 100.0 - turbidityNTU;
+    turbidityPercent = 100.0 - turbidityNTU; // Persentase kejernihan
     
+    // Status berdasarkan persentase kekeruhan
     if (turbidityNTU <= 10) turbStatus = "SANGAT JERNIH";
     else if (turbidityNTU <= 25) turbStatus = "JERNIH";
     else if (turbidityNTU <= 50) turbStatus = "CUKUP JERNIH";
@@ -701,7 +699,7 @@ void printStatus() {
     float lastVoltage = lastADC * (VREF / ADC_RESOLUTION);
     Serial.printf("[TDS DEBUG] ADC: %d, Voltage: %.4f V\n", lastADC, lastVoltage);
     Serial.printf("[TURBIDITY] ADC: %d, AIR: %d, UDARA: %d\n", 
-                  turbidityADC, TURB_AIR_ADC, TURB_UDARA_ADC);
+                  turbidityADC, ADC_AIR, ADC_UDARA);
     
     // Peringatan jika sensor turbidity bermasalah
     if (turbidityADC < 1000) {
@@ -709,7 +707,6 @@ void printStatus() {
         Serial.println("   - ADC terlalu rendah (< 1000)");
         Serial.println("   - Periksa koneksi sensor");
         Serial.println("   - Bersihkan lensa sensor");
-        Serial.println("   - Coba kalibrasi ulang dengan 'cal_turb'");
     }
 }
 
@@ -724,38 +721,29 @@ void debugTurbidity() {
     Serial.printf("║ NTU         : %8.2f               ║\n", turbidityNTU);
     Serial.printf("║ Kejernihan  : %8.1f %%            ║\n", turbidityPercent);
     Serial.printf("║ Status      : %s                ║\n", turbStatus.c_str());
-    Serial.printf("║ TURB_AIR_ADC: %6d                 ║\n", TURB_AIR_ADC);
-    Serial.printf("║ TURB_UDARA  : %6d                 ║\n", TURB_UDARA_ADC);
+    Serial.printf("║ ADC_AIR     : %6d                 ║\n", ADC_AIR);
+    Serial.printf("║ ADC_UDARA   : %6d                 ║\n", ADC_UDARA);
     Serial.println("╚═══════════════════════════════════════╝\n");
     
-    // Analisis masalah
-    if (turbidityADC < 500) {
-        Serial.println("❌❌❌ SENSOR BERMASALAH PARAH! ❌❌❌");
-        Serial.println("ADC < 500 menunjukkan:");
-        Serial.println("1. Sensor tidak terhubung dengan benar");
-        Serial.println("2. Kabel putus atau short");
-        Serial.println("3. Sensor rusak");
-        Serial.println("\nSOLUSI:");
-        Serial.println("1. Periksa koneksi kabel sensor");
-        Serial.println("2. Pastikan pin GPIO 35 terhubung");
-        Serial.println("3. Ganti sensor jika perlu");
-    } else if (turbidityADC < 2000) {
-        Serial.println("⚠️ ADC rendah (< 2000) - Sensor mungkin kotor atau rusak");
-        Serial.println("SOLUSI:");
-        Serial.println("1. Bersihkan lensa sensor dengan kain lembut");
-        Serial.println("2. Celupkan sensor ke air jernih");
-        Serial.println("3. Kalibrasi ulang dengan 'cal_turb'");
-    } else if (turbidityADC >= 3500) {
-        Serial.println("✅ ADC > 3500 → Air SANGAT JERNIH");
-    } else if (turbidityADC >= 3000) {
-        Serial.println("✅ ADC 3000-3500 → Air JERNIH");
-    } else if (turbidityADC >= 2500) {
-        Serial.println("⚠️ ADC 2500-3000 → Air CUKUP JERNIH");
-    } else if (turbidityADC >= 2000) {
-        Serial.println("⚠️ ADC 2000-2500 → Air AGAK KERUH");
+    // Analisis
+    if (turbidityADC >= ADC_AIR) {
+        Serial.println("✅ ADC >= AIR → Air SANGAT JERNIH (0% keruh)");
+    } else if (turbidityADC >= (ADC_AIR + ADC_UDARA) / 2) {
+        Serial.println("✅ ADC di atas titik tengah → Air JERNIH");
+    } else if (turbidityADC > ADC_UDARA) {
+        Serial.println("⚠️ ADC di bawah titik tengah → Air AGAK KERUH");
     } else {
-        Serial.println("❌ ADC < 2000 → Air KERUH");
+        Serial.println("❌ ADC <= UDARA → Air SANGAT KERUH");
     }
+    
+    Serial.println("\n⚠️ CATATAN:");
+    Serial.printf("   ADC AIR = %d (seharusnya > 3000)\n", ADC_AIR);
+    Serial.printf("   ADC UDARA = %d (seharusnya > 2000)\n", ADC_UDARA);
+    Serial.println("   Nilai ADC rendah menunjukkan sensor kotor atau rusak!");
+    Serial.println("\nSOLUSI:");
+    Serial.println("1. Bersihkan lensa sensor dengan kain lembut dan alkohol");
+    Serial.println("2. Periksa koneksi kabel sensor");
+    Serial.println("3. Jika masih rendah, ganti sensor");
     Serial.println("");
 }
 
@@ -764,21 +752,15 @@ void calibrateTurbidity() {
     Serial.println("║ TURBIDITY CALIBRATION               ║");
     Serial.println("╚═══════════════════════════════════════╝\n");
     
-    // Baca nilai saat ini untuk referensi
-    Serial.println("Nilai ADC saat ini:");
-    for (int i = 0; i < 5; i++) {
-        int currentADC = analogRead(TURBIDITY_PIN);
-        Serial.printf("ADC: %d\n", currentADC);
-        delay(500);
-    }
-    
-    Serial.println("\n⚠️ PERINGATAN:");
-    Serial.println("Pastikan sensor TURBIDITY terhubung dengan benar!");
-    Serial.println("Jika ADC < 1000, sensor mungkin rusak atau tidak terhubung.\n");
+    Serial.println("⚠️ PERINGATAN:");
+    Serial.println("Nilai ADC Anda sangat rendah:");
+    Serial.printf("   ADC AIR = %d (seharusnya > 3000)\n", ADC_AIR);
+    Serial.printf("   ADC UDARA = %d (seharusnya > 2000)\n", ADC_UDARA);
+    Serial.println("\nIni menandakan sensor KOTOR atau RUSAK!");
+    Serial.println("Kalibrasi tetap bisa dilakukan tapi hasilnya tidak akurat.\n");
     
     Serial.println("Step 1: Celupkan sensor ke AIR JERNIH...");
-    Serial.println("(Air yang sangat jernih / aquades)");
-    Serial.println("Tekan tombol apa saja ketika siap...");
+    Serial.println("Tekan ENTER jika sudah siap...");
     
     while (!Serial.available()) {
         delay(100);
@@ -792,74 +774,39 @@ void calibrateTurbidity() {
         delay(50);
         if (i % 10 == 0) Serial.print(".");
     }
-    int newAirADC = sumClear / 50;
+    int newAir = sumClear / 50;
     Serial.println(" SELESAI!");
-    Serial.printf("ADC di AIR JERNIH: %d\n\n", newAirADC);
-    
-    // Validasi nilai
-    if (newAirADC < 2000) {
-        Serial.println("⚠️ PERINGATAN: ADC air jernih terlalu rendah!");
-        Serial.println("   Seharusnya > 3000 untuk air jernih.");
-        Serial.println("   Sensor mungkin kotor atau rusak.");
-        Serial.println("   Tetap lanjutkan kalibrasi? (y/n)");
-        
-        while (!Serial.available()) {
-            delay(100);
-        }
-        char response = Serial.read();
-        if (response != 'y' && response != 'Y') {
-            Serial.println("Kalibrasi dibatalkan.");
-            return;
-        }
-    }
+    Serial.printf("ADC di AIR JERNIH: %d\n\n", newAir);
     
     Serial.println("Step 2: Angkat sensor ke UDARA...");
-    Serial.println("Tekan tombol apa saja ketika siap...");
+    Serial.println("Tekan ENTER jika sudah siap...");
     
     while (!Serial.available()) {
         delay(100);
     }
     Serial.read();
     
-    long sumAir = 0;
+    long sumUdara = 0;
     Serial.print("Membaca ADC di udara");
     for (int i = 0; i < 50; i++) {
-        sumAir += analogRead(TURBIDITY_PIN);
+        sumUdara += analogRead(TURBIDITY_PIN);
         delay(50);
         if (i % 10 == 0) Serial.print(".");
     }
-    int newUdaraADC = sumAir / 50;
+    int newUdara = sumUdara / 50;
     Serial.println(" SELESAI!");
-    Serial.printf("ADC di UDARA: %d\n\n", newUdaraADC);
-    
-    // Validasi nilai
-    if (newUdaraADC < 1000) {
-        Serial.println("⚠️ PERINGATAN: ADC udara terlalu rendah!");
-        Serial.println("   Seharusnya > 2000 untuk udara.");
-        Serial.println("   Sensor mungkin rusak atau tidak terhubung.");
-    }
-    
-    // Update nilai kalibrasi
-    TURB_AIR_ADC = newAirADC;
-    TURB_UDARA_ADC = newUdaraADC;
+    Serial.printf("ADC di UDARA: %d\n\n", newUdara);
     
     Serial.println("╔═══════════════════════════════════════╗");
-    Serial.println("║ KALIBRASI SELESAI                    ║");
+    Serial.println("║ HASIL KALIBRASI                     ║");
     Serial.println("╠═══════════════════════════════════════╣");
-    Serial.printf("║ TURB_AIR_ADC   : %6d              ║\n", TURB_AIR_ADC);
-    Serial.printf("║ TURB_UDARA_ADC : %6d              ║\n", TURB_UDARA_ADC);
+    Serial.printf("║ ADC_AIR     : %6d                 ║\n", newAir);
+    Serial.printf("║ ADC_UDARA   : %6d                 ║\n", newUdara);
     Serial.println("╚═══════════════════════════════════════╝\n");
     
-    // Test hasil kalibrasi
-    Serial.println("Test pembacaan setelah kalibrasi:");
-    for (int i = 0; i < 5; i++) {
-        int testADC = analogRead(TURBIDITY_PIN);
-        float testNTU = adcToNTU(testADC);
-        float testJernih = 100.0 - testNTU;
-        Serial.printf("ADC: %d → Keruh: %.1f%%, Jernih: %.1f%%\n", 
-                     testADC, testNTU, testJernih);
-        delay(1000);
-    }
-    
-    Serial.println("\nKalibrasi selesai! Gunakan perintah 'status' untuk cek.");
+    Serial.println("Copy nilai berikut ke program utama:");
+    Serial.println();
+    Serial.printf("const int ADC_AIR = %d;\n", newAir);
+    Serial.printf("const int ADC_UDARA = %d;\n", newUdara);
+    Serial.println();
 }
