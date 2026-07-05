@@ -1,3 +1,4 @@
+// script.js
 // ==================== CONFIG ====================
 const MQTT_BROKER = "wss://broker.hivemq.com:8884/mqtt";
 const MQTT_TOPIC = "watermon/all";
@@ -5,133 +6,265 @@ const MQTT_TOPIC = "watermon/all";
 let client = null;
 let messageCount = 0;
 
+// Theme colors for JS manipulation
+const THEME = {
+    accent: '#00F0FF',
+    success: '#00FF66',
+    warning: '#FFD700',
+    danger: '#FF2A54',
+    bg: 'rgba(255,255,255,0.05)',
+    textMuted: 'rgba(255,255,255,0.4)'
+};
+
+// Cache DOM elements
 const DOM = {
-    connectionStatus: document.getElementById('connectionStatus'),
-    mqttStatus: document.getElementById('mqttStatus'),
-    espStatus: document.getElementById('espStatus'),
+    connContainer: document.getElementById('connectionContainer'),
+    connDot: document.getElementById('connectionDot'),
+    connText: document.getElementById('connectionText'),
+
+    mqttBadge: document.getElementById('mqttBadge'),
+    espBadge: document.getElementById('espBadge'),
     lastUpdate: document.getElementById('lastUpdate'),
     dataCount: document.getElementById('dataCount'),
     lastMessage: document.getElementById('lastMessage'),
-    waterStatus: document.getElementById('waterStatus'),
+
+    waterStatusText: document.getElementById('waterStatusText'),
+    statusIconWrapper: document.getElementById('statusIconWrapper'),
     statusDetail: document.getElementById('statusDetail'),
+
     filterHealth: document.getElementById('filterHealth'),
     healthBar: document.getElementById('healthBar'),
     daysLeft: document.getElementById('daysLeft'),
     volumeTotal: document.getElementById('volumeTotal'),
+
     phValue: document.getElementById('phValue'),
     tdsValue: document.getElementById('tdsValue'),
     turbidityValue: document.getElementById('turbidityValue'),
     tempValue: document.getElementById('tempValue'),
-    flowRate: document.getElementById('flowRate'),
-    volumeValue: document.getElementById('volumeValue')
+
+    phBadge: document.getElementById('phBadge'),
+    tdsBadge: document.getElementById('tdsBadge'),
+    turbBadge: document.getElementById('turbBadge'),
+    tempBadge: document.getElementById('tempBadge'),
 };
 
 let charts = null;
 
-// ==================== CHARTS ====================
+// ==================== CHARTS CONFIG ====================
+// Global overrides for Chart.js to fit the cyber/glass theme
+Chart.defaults.color = 'rgba(255,255,255,0.5)';
+Chart.defaults.font.family = "'JetBrains Mono', monospace";
+Chart.defaults.font.size = 10;
+
 function initCharts() {
+    const createChartOptions = (borderColor, bgColor) => ({
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: { display: false },
+            tooltip: {
+                mode: 'index',
+                intersect: false,
+                backgroundColor: 'rgba(6, 19, 37, 0.9)',
+                titleColor: '#fff',
+                bodyColor: borderColor,
+                borderColor: 'rgba(255,255,255,0.1)',
+                borderWidth: 1,
+                padding: 10,
+                displayColors: false,
+                callbacks: {
+                    label: function(context) {
+                        return `Value: ${context.parsed.y}`;
+                    }
+                }
+            }
+        },
+        scales: {
+            x: {
+                grid: { display: false, drawBorder: false },
+                ticks: { maxTicksLimit: 6, maxRotation: 0 }
+            },
+            y: {
+                beginAtZero: false,
+                grid: { color: 'rgba(255,255,255,0.05)', borderDash: [2, 4], drawBorder: false }
+            }
+        },
+        elements: {
+            line: {
+                tension: 0.4,
+                borderWidth: 2,
+                shadowBlur: 10,
+                shadowColor: borderColor
+            },
+            point: {
+                radius: 0,
+                hitRadius: 10,
+                hoverRadius: 4,
+                backgroundColor: '#fff',
+                borderWidth: 2,
+                borderColor: borderColor
+            }
+        }
+    });
+
+    // Create gradient for pH chart
+    const phCtx = document.getElementById('phChart').getContext('2d');
+    const phGradient = phCtx.createLinearGradient(0, 0, 0, 300);
+    phGradient.addColorStop(0, 'rgba(0, 240, 255, 0.4)');
+    phGradient.addColorStop(1, 'rgba(0, 240, 255, 0.0)');
+
+    // Create gradient for TDS chart
+    const tdsCtx = document.getElementById('tdsChart').getContext('2d');
+    const tdsGradient = tdsCtx.createLinearGradient(0, 0, 0, 300);
+    tdsGradient.addColorStop(0, 'rgba(0, 255, 102, 0.4)');
+    tdsGradient.addColorStop(1, 'rgba(0, 255, 102, 0.0)');
+
     charts = {
-        ph: new Chart(document.getElementById('phChart'), {
+        ph: new Chart(phCtx, {
             type: 'line',
-            data: { labels: [], datasets: [{ label: 'pH', data: [], borderColor: '#4299e1', tension: 0.4, fill: true }] },
-            options: { responsive: true, scales: { y: { min: 0, max: 14 } } }
+            data: {
+                labels: [],
+                datasets: [{
+                    data: [],
+                    borderColor: THEME.accent,
+                    backgroundColor: phGradient,
+                    fill: true
+                }]
+            },
+            options: { ...createChartOptions(THEME.accent), scales: { y: { min: 0, max: 14, ...createChartOptions(THEME.accent).scales.y } } }
         }),
-        tds: new Chart(document.getElementById('tdsChart'), {
+        tds: new Chart(tdsCtx, {
             type: 'line',
-            data: { labels: [], datasets: [{ label: 'TDS', data: [], borderColor: '#48bb78', tension: 0.4, fill: true }] },
-            options: { responsive: true, scales: { y: { min: 0, max: 500 } } }
+            data: {
+                labels: [],
+                datasets: [{
+                    data: [],
+                    borderColor: THEME.success,
+                    backgroundColor: tdsGradient,
+                    fill: true
+                }]
+            },
+            options: { ...createChartOptions(THEME.success), scales: { y: { min: 0, max: 500, ...createChartOptions(THEME.success).scales.y } } }
         })
     };
 }
 
-// ==================== MQTT ====================
+// ==================== MQTT LOGIC ====================
 function connectToMQTT() {
-    console.log("🔌 Connecting to HiveMQ...");
-
     client = mqtt.connect(MQTT_BROKER, {
-        clientId: 'dashboard_' + Math.random().toString(16).substr(2, 8),
+        clientId: 'nexus_dash_' + Math.random().toString(16).substr(2, 8),
         reconnectPeriod: 3000
     });
 
     client.on("connect", () => {
-        console.log("✅ Connected to MQTT Broker!");
-        DOM.mqttStatus.textContent = "MQTT: Online";
-        DOM.mqttStatus.className = "status-badge online";
-        DOM.connectionStatus.textContent = "● Online";
-        DOM.connectionStatus.className = "badge badge-success";
+        // Update Main Connection Status
+        DOM.connText.textContent = "SYSTEM ONLINE";
+        DOM.connText.className = "text-sm font-bold text-ocean-accent tracking-widest";
+        DOM.connDot.className = "status-dot bg-ocean-accent shadow-neon-glow";
+        DOM.connContainer.className = "flex items-center gap-3 px-4 py-2 rounded-xl bg-ocean-accent/10 border border-ocean-accent/30";
+
+        // Update MQTT Badge
+        updateMiniBadge(DOM.mqttBadge, true, "MQTT LINKED");
+
+        // Set ESP to waiting initially
+        updateMiniBadge(DOM.espBadge, false, "AWAITING NODE", THEME.warning);
 
         client.subscribe(MQTT_TOPIC);
+    });
+
+    client.on("offline", () => {
+        DOM.connText.textContent = "CONNECTION LOST";
+        DOM.connText.className = "text-sm font-bold text-ocean-danger tracking-widest";
+        DOM.connDot.className = "status-dot bg-ocean-danger";
+        DOM.connContainer.className = "flex items-center gap-3 px-4 py-2 rounded-xl bg-ocean-danger/10 border border-ocean-danger/30";
+
+        updateMiniBadge(DOM.mqttBadge, false, "MQTT OFFLINE", THEME.danger);
+        updateMiniBadge(DOM.espBadge, false, "NODE OFFLINE", THEME.danger);
     });
 
     client.on("message", (topic, message) => {
         try {
             const data = JSON.parse(message.toString());
-            console.log("📨 Data received:", data);
+
+            // ESP is definitively online when sending data
+            updateMiniBadge(DOM.espBadge, true, "NODE ACTIVE", THEME.success);
 
             messageCount++;
-            DOM.dataCount.textContent = `📊 ${messageCount} data points`;
-            DOM.lastMessage.textContent = `📨 Last: ${new Date().toLocaleTimeString('id-ID')}`;
+            DOM.dataCount.textContent = `RX: ${messageCount} PKT`;
 
-            updateDashboard(data);
-            updateCharts(data);
+            const now = new Date();
+            DOM.lastUpdate.textContent = now.toLocaleTimeString('en-US', { hour12: false });
+            DOM.lastMessage.textContent = `Last sig: ${now.getSeconds()}s ago`;
+
+            processIncomingData(data);
+
         } catch (e) {
-            console.error("Parse error:", e);
+            console.error("Payload parse error:", e);
         }
     });
 }
 
-// ==================== UPDATE DASHBOARD ====================
-function updateDashboard(data) {
-    DOM.lastUpdate.textContent = `⏱️ ${new Date().toLocaleTimeString('id-ID')}`;
+// Helper for the small header badges
+function updateMiniBadge(element, isGood, text, colorCode = THEME.success) {
+    const dot = element.querySelector('.status-dot');
+    const span = element.querySelector('span:last-child');
 
-    if (data.ph !== undefined) DOM.phValue.textContent = data.ph.toFixed(2);
-    if (data.tds !== undefined) DOM.tdsValue.textContent = data.tds.toFixed(0);
-    if (data.turbidity !== undefined) DOM.turbidityValue.textContent = data.turbidity.toFixed(0);
-    if (data.temperature !== undefined) DOM.tempValue.textContent = data.temperature.toFixed(1);
-    if (data.flow_rate !== undefined) DOM.flowRate.textContent = data.flow_rate.toFixed(1);
-    if (data.volume !== undefined) {
-        DOM.volumeValue.textContent = data.volume.toFixed(1);
-        DOM.volumeTotal.textContent = `💧 ${data.volume.toFixed(1)} L`;
-    }
-
-    // Status Air
-    const statusText = DOM.waterStatus.querySelector('.status-text');
-    if (statusText) {
-        if (data.status === 'LAYAK') {
-            statusText.textContent = 'LAYAK';
-            statusText.className = 'status-text layak';
-        } else {
-            statusText.textContent = 'TIDAK LAYAK';
-            statusText.className = 'status-text tidak-layak';
-        }
+    span.textContent = text;
+    if (isGood) {
+        element.style.borderColor = `rgba(${hexToRgb(colorCode)}, 0.3)`;
+        element.style.backgroundColor = `rgba(${hexToRgb(colorCode)}, 0.1)`;
+        dot.style.backgroundColor = colorCode;
+        dot.style.color = colorCode;
+        span.style.color = colorCode;
+    } else {
+        element.style.borderColor = `rgba(${hexToRgb(colorCode)}, 0.3)`;
+        element.style.backgroundColor = `rgba(0,0,0,0.4)`;
+        dot.style.backgroundColor = colorCode;
+        dot.style.color = colorCode;
+        span.style.color = `rgba(${hexToRgb(colorCode)}, 0.8)`;
     }
 }
 
-function updateCharts(data) {
-    const now = new Date().toLocaleTimeString('id-ID', {hour:'2-digit', minute:'2-digit'});
-    if (data.ph !== undefined && charts) {
-        charts.ph.data.labels.push(now);
-        charts.ph.data.datasets[0].data.push(data.ph);
-        if (charts.ph.data.labels.length > 60) {
-            charts.ph.data.labels.shift();
-            charts.ph.data.datasets[0].data.shift();
-        }
-        charts.ph.update('none');
-    }
-    if (data.tds !== undefined && charts) {
-        charts.tds.data.labels.push(now);
-        charts.tds.data.datasets[0].data.push(data.tds);
-        if (charts.tds.data.labels.length > 60) {
-            charts.tds.data.labels.shift();
-            charts.tds.data.datasets[0].data.shift();
-        }
-        charts.tds.update('none');
+// Helper to convert hex to rgb for rgba manipulation
+function hexToRgb(hex) {
+    const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+    return result ? `${parseInt(result[1], 16)}, ${parseInt(result[2], 16)}, ${parseInt(result[3], 16)}` : '255,255,255';
+}
+
+// ==================== DATA PROCESSING & UI UPDATE ====================
+
+function styleValueBadge(element, condition, textGood, textBad) {
+    if (condition) {
+        element.textContent = textGood;
+        element.className = "inline-flex px-2 py-0.5 rounded text-[10px] font-bold bg-[#00FF66]/10 text-[#00FF66] border border-[#00FF66]/30 uppercase tracking-widest";
+    } else {
+        element.textContent = textBad;
+        element.className = "inline-flex px-2 py-0.5 rounded text-[10px] font-bold bg-[#FF2A54]/10 text-[#FF2A54] border border-[#FF2A54]/30 uppercase tracking-widest animate-pulse";
     }
 }
 
-// ==================== START ====================
-document.addEventListener("DOMContentLoaded", () => {
-    console.log("🚀 Smart RO Dashboard Started");
-    initCharts();
-    connectToMQTT();
-});
+function processIncomingData(data) {
+    // 1. Update Grid Values
+    if (data.ph !== undefined) {
+        DOM.phValue.textContent = data.ph.toFixed(2);
+        styleValueBadge(DOM.phBadge, data.ph >= 6.5 && data.ph <= 8.5, "OPTIMAL", "WARNING");
+    }
+    if (data.tds !== undefined) {
+        DOM.tdsValue.textContent = data.tds.toFixed(0);
+        styleValueBadge(DOM.tdsBadge, data.tds < 50, "PURE", "HIGH TDS");
+    }
+    if (data.turbidity !== undefined) {
+        DOM.turbidityValue.textContent = data.turbidity.toFixed(1);
+        styleValueBadge(DOM.turbBadge, data.turbidity < 5, "CLEAR", "CLOUDY");
+    }
+    if (data.temperature !== undefined) {
+        DOM.tempValue.textContent = data.temperature.toFixed(1);
+        styleValueBadge(DOM.tempBadge, data.temperature > 15 && data.temperature < 35, "NOMINAL", "ALERT");
+    }
+
+    // 2. Main Water Status Hero Card
+    if (data.status) {
+        if (data.status.toUpperCase() === 'LAYAK' || data.status.toUpperCase() === 'SAFE') {
+            DOM.waterStatusText.textContent = "SAFE TO DRINK";
+            DOM.waterStatusText.className = "text-3xl font-extrabold tracking-tight z-10 text-ocean-success mb-1 text-shadow-sm";
+            DOM.statusIconWrapper.innerHTML = `<svg class="w-16 h-16 text-ocean-success" fill="none" stroke="currentColor"
